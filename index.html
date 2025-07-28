@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Агломерации Израиля — Интерактивная карта</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    #map { height: 100vh; }
+    .popup-content { font-size: 14px; }
+    .filters {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: white;
+      padding: 10px;
+      border-radius: 8px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.2);
+      z-index: 1000;
+      font-family: sans-serif;
+    }
+    .filters label {
+      display: block;
+      margin-bottom: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div class="filters">
+    <label><input type="checkbox" checked id="filter-jewish"> Еврейские</label>
+    <label><input type="checkbox" checked id="filter-arabic"> Арабские</label>
+    <label><input type="checkbox" checked id="filter-tourism"> Туризм</label>
+    <label><input type="checkbox" checked id="filter-hi-tech"> Хай-тек</label>
+  </div>
+  <div id="map"></div>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    const map = L.map('map').setView([31.5, 34.9], 8);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap',
+    }).addTo(map);
+
+    function getColor(population) {
+      if (population > 3000000) return '#800026';
+      if (population > 1000000) return '#BD0026';
+      if (population > 500000)  return '#E31A1C';
+      if (population > 200000)  return '#FC4E2A';
+      if (population > 100000)  return '#FD8D3C';
+      return '#FEB24C';
+    }
+
+    const agglomerations = [
+      {
+        name: "Гуш-Дан (Тель-Авив)",
+        coords: [32.0853, 34.7818],
+        population: 4156900,
+        polygon: [
+          [32.2, 34.8],
+          [32.0, 34.8],
+          [31.95, 34.95],
+          [32.1, 35.0]
+        ],
+        religion: 'jewish',
+        activity: 'hi-tech',
+        info: `
+          <b>Население:</b> ~4.1 млн<br/>
+          <b>Деятельность:</b> Хай-тек, финансы<br/>
+          <b>Религия:</b> 89% евреи
+        `
+      },
+      {
+        name: "Иерусалимская",
+        coords: [31.7683, 35.2137],
+        population: 1105000,
+        polygon: [
+          [31.9, 35.1],
+          [31.7, 35.0],
+          [31.5, 35.1],
+          [31.6, 35.3]
+        ],
+        religion: 'mixed',
+        activity: 'tourism',
+        info: `
+          <b>Население:</b> ~1.1 млн<br/>
+          <b>Деятельность:</b> Туризм, администрация<br/>
+          <b>Религия:</b> 60% евреи, 37% мусульмане
+        `
+      },
+      {
+        name: "Хайфская",
+        coords: [32.7940, 34.9896],
+        population: 552000,
+        polygon: [
+          [32.9, 34.9],
+          [32.8, 34.7],
+          [32.6, 34.8],
+          [32.7, 35.0]
+        ],
+        religion: 'jewish',
+        activity: 'hi-tech',
+        info: `
+          <b>Население:</b> ~550 тыс<br/>
+          <b>Деятельность:</b> Порт, технологии<br/>
+          <b>Религия:</b> 90% евреи
+        `
+      },
+      {
+        name: "Беэр-Шева",
+        coords: [31.2518, 34.7913],
+        population: 377000,
+        polygon: [
+          [31.4, 34.7],
+          [31.2, 34.6],
+          [31.0, 34.7],
+          [31.2, 34.9]
+        ],
+        religion: 'mixed',
+        activity: 'hi-tech',
+        info: `
+          <b>Население:</b> ~377 тыс<br/>
+          <b>Деятельность:</b> Хай-тек, армия<br/>
+          <b>Религия:</b> 80% евреи, 20% арабы
+        `
+      },
+      {
+        name: "Эйлат",
+        coords: [29.5577, 34.9519],
+        population: 65000,
+        polygon: [
+          [29.6, 34.9],
+          [29.5, 34.9],
+          [29.5, 35.0],
+          [29.6, 35.0]
+        ],
+        religion: 'jewish',
+        activity: 'tourism',
+        info: `
+          <b>Население:</b> ~65 тыс<br/>
+          <b>Деятельность:</b> Туризм, порт<br/>
+          <b>Религия:</b> Преимущественно евреи
+        `
+      }
+    ];
+
+    const layers = [];
+
+    function renderMap() {
+      layers.forEach(layer => map.removeLayer(layer));
+      layers.length = 0;
+
+      const showJewish = document.getElementById('filter-jewish').checked;
+      const showArabic = document.getElementById('filter-arabic').checked;
+      const showTourism = document.getElementById('filter-tourism').checked;
+      const showHiTech = document.getElementById('filter-hi-tech').checked;
+
+      agglomerations.forEach(city => {
+        const showReligion =
+          (city.religion === 'jewish' && showJewish) ||
+          (city.religion === 'arabic' && showArabic) ||
+          (city.religion === 'mixed' && (showJewish || showArabic));
+        const showActivity =
+          (city.activity === 'hi-tech' && showHiTech) ||
+          (city.activity === 'tourism' && showTourism);
+
+        if (!showReligion || !showActivity) return;
+
+        const circle = L.circleMarker(city.coords, {
+          radius: 10,
+          color: '#000',
+          fillColor: getColor(city.population),
+          fillOpacity: 0.8
+        }).bindPopup(`<div class="popup-content"><b>${city.name}</b><br/>${city.info}</div>`)
+          .addTo(map);
+        layers.push(circle);
+
+        const polygon = L.polygon(city.polygon, {
+          color: '#0057A8',
+          weight: 1,
+          fillOpacity: 0.1
+        }).addTo(map);
+        layers.push(polygon);
+      });
+    }
+
+    renderMap();
+    document.querySelectorAll('.filters input').forEach(input => {
+      input.addEventListener('change', renderMap);
+    });
+  </script>
+</body>
+</html>
